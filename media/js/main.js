@@ -40,6 +40,7 @@ socket.on('full', function(room) {
 });
 
 ////////////////////////////////////////////////////
+// 同一个房间内的客户端呼唤信息，并实现通信
 
 var localVideo = document.querySelector('#localVideo');
 var remoteVideo = document.querySelector('#remoteVideo');
@@ -72,7 +73,6 @@ function sendMessage(message) {
   socket.emit('message', message);
 }
 
-// This client receives a message
 socket.on('message', function(message) {
   console.log('Client received message:', message);
   if (message === 'got user media') {
