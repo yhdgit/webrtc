@@ -1,6 +1,5 @@
 'use strict';
 
-var os = require('os');
 var nodeStatic = require('node-static');
 var https = require('https');
 var socketIO = require('socket.io');
@@ -28,44 +27,21 @@ io.sockets.on('connection', function(socket) {
     if (numClients === 0) {
       socket.join(room);
       console.log('Client ID: ' + socket.id + ' created room: ' + room);
-      socket.emit('created', room, socket.id);
+      socket.emit('created', room);
     } else if (numClients === 1) {
-      console.log('Client ID: ' + socket.id + ' joining room: ' + room);
-      io.sockets.in(room).emit('other joining', room); // 获取该房间另一个人的socket
+      io.sockets.in(room).emit('other joining', room); // 获取该房间的socket，并通知有其他人加入
       socket.join(room);
-      socket.emit('other joined', room);
+      console.log('Client ID: ' + socket.id + ' joined room: ' + room);
+      socket.emit('joined', room); // 通知自己加入了那个房间
       io.sockets.in(room).emit('ready');
     } else { // max two clients
       socket.emit('full', room);
     }
   });
 
-  // convenience function to log server messages on the client
-  function log() {
-    var array = ['Message from server:'];
-    array.push.apply(array, arguments);
-    socket.emit('log', array);
-  }
-
   socket.on('message', function(message) {
-    log('Client said: ', message);
+    console.log('Client said: ', message);
     // for a real app, would be room-only (not broadcast)
     socket.broadcast.emit('message', message);
   });
-
-  socket.on('ipaddr', function() {
-    var ifaces = os.networkInterfaces();
-    for (var dev in ifaces) {
-      ifaces[dev].forEach(function(details) {
-        if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
-          socket.emit('ipaddr', details.address);
-        }
-      });
-    }
-  });
-
-  socket.on('bye', function(){
-    console.log('received bye');
-  });
-
 });
