@@ -1,11 +1,10 @@
 'use strict';
 
-var isChannelReady = false;
-var isInitiator = false;
-var isStarted = false;
+var isInitiator = false;      // 房间时候初始化的标志
+var isChannelReady = false;   // 另外一个人是否也加入该房间的标志
+var isStarted = false;        // 
 var localStream;
 var pc;
-var remoteStream;
 
 var pcConfig = {
   'iceServers': [{
@@ -15,43 +14,36 @@ var pcConfig = {
   }]
 };
 
-// Set up audio and video regardless of what devices are present.
-var sdpConstraints = {
-  offerToReceiveAudio: true,
-  offerToReceiveVideo: true
-};
-
 /////////////////////////////////////////////
 
-var room = 'foo';
-// Could prompt for room name:
-// room = prompt('Enter room name:');
-
+var room = 'testRoom';
 var socket = io.connect();
 
 if (room !== '') {
+  console.log('Attempted to create or join room: ', room);
   socket.emit('create or join', room);
-  console.log('Attempted to create or  join room', room);
 }
 
 socket.on('created', function(room) {
-  console.log('Created room ' + room);
+  console.log('Created room: ' + room);
   isInitiator = true;
 });
 
+socket.on('other joining', function (room) {
+  console.log('Other peer made a request to join room: ' + room);
+});
+
+socket.on('other joined', function(room) {
+  console.log('Other peer joined room: ' + room);
+  isChannelReady = true;
+});
+
 socket.on('full', function(room) {
-  console.log('Room ' + room + ' is full');
+  console.log('Room: ' + room + ' is full');
 });
 
-socket.on('join', function (room){
-  console.log('Another peer made a request to join room ' + room);
-  console.log('This peer is the initiator of room ' + room + '!');
-  isChannelReady = true;
-});
-
-socket.on('joined', function(room) {
-  console.log('joined: ' + room);
-  isChannelReady = true;
+socket.on('ready', function() {
+  console.log('Both sides are ready');
 });
 
 socket.on('log', function(array) {
@@ -97,11 +89,10 @@ var remoteVideo = document.querySelector('#remoteVideo');
 navigator.mediaDevices.getUserMedia({
   audio: false,
   video: true
-})
-.then(gotStream)
-.catch(function(e) {
-  alert('getUserMedia() error: ' + e.name);
-});
+}).then(gotStream)
+  .catch(function(e) {
+    alert('getUserMedia error: ' + e.name);
+  });
 
 function gotStream(stream) {
   console.log('Adding local stream.');
@@ -196,28 +187,17 @@ function onCreateSessionDescriptionError(error) {
 
 function handleRemoteStreamAdded(event) {
   console.log('Remote stream added.');
-  remoteStream = event.stream;
-  remoteVideo.srcObject = remoteStream;
+  remoteVideo.srcObject = event.stream;
 }
 
 function handleRemoteStreamRemoved(event) {
   console.log('Remote stream removed. Event: ', event);
 }
 
-function hangup() {
-  console.log('Hanging up.');
-  stop();
-  sendMessage('bye');
-}
-
 function handleRemoteHangup() {
   console.log('Session terminated.');
-  stop();
-  isInitiator = false;
-}
-
-function stop() {
   isStarted = false;
   pc.close();
   pc = null;
+  isInitiator = false;
 }
