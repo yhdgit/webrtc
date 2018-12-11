@@ -2,20 +2,15 @@
 
 var isRoomCreators = false;  // 房间创造者
 var isBothReady = false;     // 双方都在同一个房间，都准备好了
-var isStarted = false;       // 
-var localStream;
-var pc;                      // RTCPeerConnection
 
-/////////////////////////////////////////////
+////////////////////////////////////////////////////
 // 客户端创建或加入房间
 
 var room = 'testRoom';
 var socket = io.connect();
 
-if (room !== '') {
-  console.log('Attempted to create or join room: ', room);
-  socket.emit('create or join', room);
-}
+console.log('Attempted to create or join room: ', room);
+socket.emit('create or join', room);
 
 socket.on('created', function(room) {
   console.log('Created room: ' + room);
@@ -40,7 +35,7 @@ socket.on('full', function(room) {
 });
 
 ////////////////////////////////////////////////////
-// 同一个房间内的客户端呼唤信息，并实现通信
+// 同一个房间内的客户端互换信息，并实现视频通信
 
 var localVideo = document.querySelector('#localVideo');
 var remoteVideo = document.querySelector('#remoteVideo');
@@ -51,6 +46,9 @@ var pcConfig = {
     'credential': 'yhd1234'
   }]
 };
+var isStarted = false;
+var localStream;
+var peerConn;
 
 console.log('Getting user media');
 navigator.mediaDevices.getUserMedia({
@@ -76,28 +74,28 @@ function sendMessage(message) {
 socket.on('message', function(message) {
   console.log('Client received message:', message);
   if (message === 'got user media') {
-    maybeStart();
+    start();
   } else if (message.type === 'offer') {
     if (!isRoomCreators && !isStarted) {
-      maybeStart();
+      start();
     }
-    pc.setRemoteDescription(new RTCSessionDescription(message));
+    peerConn.setRemoteDescription(new RTCSessionDescription(message));
     doAnswer();
   } else if (message.type === 'answer' && isStarted) {
-    pc.setRemoteDescription(new RTCSessionDescription(message));
+    peerConn.setRemoteDescription(new RTCSessionDescription(message));
   } else if (message.type === 'candidate' && isStarted) {
     var candidate = new RTCIceCandidate({
       sdpMLineIndex: message.label,
       candidate: message.candidate
     });
-    pc.addIceCandidate(candidate);
+    peerConn.addIceCandidate(candidate);
   } else if (message === 'bye' && isStarted) {
     handleRemoteHangup();
   }
 });
 
-function maybeStart() {
-  console.log('maybeStart() ', isStarted, localStream, isBothReady);
+function start() {
+  console.log('start() ', isStarted, localStream, isBothReady);
   if (!isStarted && typeof localStream !== 'undefined' && isBothReady) {
     console.log('Creating peer connection');
     createPeerConnection();
@@ -111,12 +109,12 @@ function maybeStart() {
 
 function createPeerConnection() {
   try {
-    pc = new RTCPeerConnection(pcConfig);
-    pc.onicecandidate = handleIceCandidate;
-    pc.onaddstream = handleRemoteStreamAdded;
-    pc.onremovestream = handleRemoteStreamRemoved;
+    peerConn = new RTCPeerConnection(pcConfig);
+    peerConn.onicecandidate = handleIceCandidate;
+    peerConn.onaddstream = handleRemoteStreamAdded;
+    peerConn.onremovestream = handleRemoteStreamRemoved;
     console.log('Created RTCPeerConnnection');
-    pc.addStream(localStream);
+    peerConn.addStream(localStream);
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
     return;
@@ -149,12 +147,12 @@ function handleRemoteStreamRemoved(event) {
 
 function doCall() {
   console.log('Sending offer to peer');
-  pc.createOffer(setLocalAndSendMessage, handleCreateOfferError);
+  peerConn.createOffer(setLocalAndSendMessage, handleCreateOfferError);
 }
 
 function setLocalAndSendMessage(sessionDescription) {
   console.log('setLocalAndSendMessage. sessionDescription: ', sessionDescription);
-  pc.setLocalDescription(sessionDescription);
+  peerConn.setLocalDescription(sessionDescription);
   sendMessage(sessionDescription);
 }
 
@@ -164,7 +162,7 @@ function handleCreateOfferError(event) {
 
 function doAnswer() {
   console.log('Sending answer to peer.');
-  pc.createAnswer().then(
+  peerConn.createAnswer().then(
     setLocalAndSendMessage,
     onCreateSessionDescriptionError
   );
@@ -179,8 +177,8 @@ function handleRemoteHangup() {
   isRoomCreators = false;
   isBothReady = false;
   isStarted = false;
-  pc.close();
-  pc = null;
+  peerConn.close();
+  peerConn = null;
 }
 
 window.onbeforeunload = function() {
