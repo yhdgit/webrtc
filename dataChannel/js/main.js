@@ -76,7 +76,7 @@ socket.on('message', function(message) {
 function start() {
   console.log('Creating peer connection');
   try {
-    peerConn = new RTCPeerConnection(pcConfig);
+    peerConn = new RTCPeerConnection(pcConfig, {optional: [{RtpDataChannels: true}]});
     peerConn.onicecandidate = handleIceCandidate;
     console.log('Created peer connection');
   } catch (e) {
@@ -85,7 +85,7 @@ function start() {
   }
   if (isRoomCreators) {
     console.log('Creating Data Channel');
-    dataChannel = peerConn.createDataChannel();
+    dataChannel = peerConn.createDataChannel('sendDataChannel', {reliable: false});
     onDataChannelCreated(dataChannel);
 
     doCall();
