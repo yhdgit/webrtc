@@ -121,7 +121,7 @@ function handleIceCandidate(event) {
   if (event.candidate) {
     sendMessage({
       type: 'candidate',
-      candidate: event.candidate
+      candidate: event.candidate.candidate
     });
   } else {
     console.log('End of candidates.');
