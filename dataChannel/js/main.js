@@ -56,17 +56,17 @@ function sendMessage(message) {
 
 socket.on('message', function(message) {
   console.log('Client received message:', message);
-  if (message.type === 'offer') {
+  if (message === 'Data Channel Created') {
     start();
-    peerConn.setRemoteDescription(new RTCSessionDescription(message));
+  } else if (message === 'Data Channel Ready') {
+    doOffer();
+  } else if (message.type === 'offer') {
+    peerConn.setRemoteDescription(new RTCSessionDescription(message.description));
     doAnswer();
   } else if (message.type === 'answer') {
-    peerConn.setRemoteDescription(new RTCSessionDescription(message));
-
-    createDataChannel();
+    peerConn.setRemoteDescription(new RTCSessionDescription(message.description));
   } else if (message.type === 'candidate') {
     var candidate = new RTCIceCandidate({
-      sdpMLineIndex: message.label,
       candidate: message.candidate
     });
     peerConn.addIceCandidate(candidate);
@@ -78,7 +78,7 @@ socket.on('message', function(message) {
 function start() {
   console.log('Creating peer connection');
   try {
-    peerConn = new RTCPeerConnection(pcConfig, {optional: [{RtpDataChannels: true}]});
+    peerConn = new RTCPeerConnection(pcConfig);
     peerConn.onicecandidate = handleIceCandidate;
     console.log('Created peer connection');
   } catch (e) {
@@ -86,13 +86,33 @@ function start() {
     return;
   }
   if (isRoomCreators) {
-    doCall();
+    console.log('Creating Data Channel');
+    dataChannel = peerConn.createDataChannel('myLabel', {
+      ordered: true,
+    });
+    // onDataChannelCreated(dataChannel);
+    dataChannel.onopen = function() {
+      console.log('Data Channel opened.');
+    };
+    dataChannel.onclose = function() {
+      console.log('Data Channel closed.');
+    }
+    sendMessage('Data Channel Created');
   } else {
     peerConn.ondatachannel = function(event) {
       console.log('ondatachannel:', event.channel);
       dataChannel = event.channel;
-      onDataChannelCreated(dataChannel);
+      // onDataChannelCreated(dataChannel);
+      dataChannel.onclose = function() {
+        console.log('Data Channel closed.');
+      }
+      dataChannel.onmessage = function(event) {
+        var data = event.data;
+        console.log('receive : ' + data);
+        receiver.value = data;
+      };
     };
+    sendMessage('Data Channel Ready');
   }
 }
 
@@ -101,9 +121,7 @@ function handleIceCandidate(event) {
   if (event.candidate) {
     sendMessage({
       type: 'candidate',
-      label: event.candidate.sdpMLineIndex,
-      id: event.candidate.sdpMid,
-      candidate: event.candidate.candidate
+      candidate: event.candidate
     });
   } else {
     console.log('End of candidates.');
@@ -130,39 +148,31 @@ function onDataChannelCreated(dataChannel) {
   };
 }
 
-function doCall() {
+function doOffer() {
   console.log('Sending offer to peer');
-  peerConn.createOffer(setLocalAndSendMessage, logError);
+  try {
+    let offer = peerConn.createOffer();
+    peerConn.setLocalDescription(offer);
+    sendMessage({
+      type: 'offer',
+      description: offer
+    });
+  } catch (e) {
+    console.error('Failed to create offer: ', e);
+  }
 }
 
 function doAnswer() {
-  console.log('Sending answer to peer.');
-  peerConn.createAnswer().then(
-    setLocalAndSendMessage,
-    logError
-  );
-}
-
-function setLocalAndSendMessage(sessionDescription) {
-  console.log('setLocalAndSendMessage. sessionDescription: ', sessionDescription);
-  peerConn.setLocalDescription(sessionDescription);
-  sendMessage(sessionDescription);
-}
-
-function createDataChannel() {
-  console.log('Creating Data Channel');
-  dataChannel = peerConn.createDataChannel('myLabel', {
-    ordered: false,
-  });
-  onDataChannelCreated(dataChannel);
-}
-
-function logError(err) {
-  if (!err) return;
-  if (typeof err === 'string') {
-    console.warn(err);
-  } else {
-    console.warn(err.toString(), err);
+  console.log('Sending answer to peer');
+  try {
+    let answer = peerConn.createAnswer();
+    peerConn.setLocalDescription(answer);
+    sendMessage({
+      type: 'answer',
+      description: answer
+    });
+  } catch (e) {
+    console.error('Failed to create answer: ', e);
   }
 }
 
