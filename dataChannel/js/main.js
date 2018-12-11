@@ -62,6 +62,8 @@ socket.on('message', function(message) {
     doAnswer();
   } else if (message.type === 'answer') {
     peerConn.setRemoteDescription(new RTCSessionDescription(message));
+
+    createDataChannel();
   } else if (message.type === 'candidate') {
     var candidate = new RTCIceCandidate({
       sdpMLineIndex: message.label,
@@ -84,13 +86,6 @@ function start() {
     return;
   }
   if (isRoomCreators) {
-    console.log('Creating Data Channel');
-    dataChannel = peerConn.createDataChannel('myLabel', {
-      ordered: false,           //不保证到达顺序
-      maxRetransmitTime: 3000,  //最大重传时间
-    });
-    onDataChannelCreated(dataChannel);
-
     doCall();
   } else {
     peerConn.ondatachannel = function(event) {
@@ -152,6 +147,15 @@ function setLocalAndSendMessage(sessionDescription) {
   console.log('setLocalAndSendMessage. sessionDescription: ', sessionDescription);
   peerConn.setLocalDescription(sessionDescription);
   sendMessage(sessionDescription);
+}
+
+function createDataChannel() {
+  console.log('Creating Data Channel');
+    dataChannel = peerConn.createDataChannel('myLabel', {
+      ordered: false,           //不保证到达顺序
+      maxRetransmitTime: 3000,  //最大重传时间
+    });
+  onDataChannelCreated(dataChannel);
 }
 
 function logError(err) {
