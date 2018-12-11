@@ -151,10 +151,9 @@ function setLocalAndSendMessage(sessionDescription) {
 
 function createDataChannel() {
   console.log('Creating Data Channel');
-    dataChannel = peerConn.createDataChannel('myLabel', {
-      ordered: false,           //不保证到达顺序
-      maxRetransmitTime: 3000,  //最大重传时间
-    });
+  dataChannel = peerConn.createDataChannel('myLabel', {
+    ordered: false,
+  });
   onDataChannelCreated(dataChannel);
 }
 
