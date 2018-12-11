@@ -85,7 +85,10 @@ function start() {
   }
   if (isRoomCreators) {
     console.log('Creating Data Channel');
-    dataChannel = peerConn.createDataChannel('sendDataChannel', {reliable: false});
+    dataChannel = peerConn.createDataChannel('myLabel', {
+      ordered: false,           //不保证到达顺序
+      maxRetransmitTime: 3000,  //最大重传时间
+    });
     onDataChannelCreated(dataChannel);
 
     doCall();
@@ -114,17 +117,21 @@ function handleIceCandidate(event) {
 
 function onDataChannelCreated(dataChannel) {
   dataChannel.onopen = function() {
-    console.log('DataChannel opened!!!');
+    console.log('Data Channel opened.');
   };
 
   dataChannel.onclose = function() {
-    console.log('DataChannel closed.');
+    console.log('Data Channel closed.');
   }
 
   dataChannel.onmessage = function(event) {
     var data = event.data;
     console.log('receive : ' + data);
     receiver.value = data;
+  };
+
+  dataChannel.onerror = function (error) {
+    console.log("Data Channel Error:", error);
   };
 }
 
