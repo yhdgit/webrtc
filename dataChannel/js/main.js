@@ -61,10 +61,10 @@ socket.on('message', function(message) {
   } else if (message === 'Data Channel Ready') {
     doOffer();
   } else if (message.type === 'offer') {
-    peerConn.setRemoteDescription(new RTCSessionDescription(message.description));
+    peerConn.setRemoteDescription(new RTCSessionDescription(message));
     doAnswer();
   } else if (message.type === 'answer') {
-    peerConn.setRemoteDescription(new RTCSessionDescription(message.description));
+    peerConn.setRemoteDescription(new RTCSessionDescription(message));
   } else if (message.type === 'candidate') {
     var candidate = new RTCIceCandidate({
       candidate: message.candidate
@@ -150,33 +150,24 @@ function onDataChannelCreated(dataChannel) {
 
 function doOffer() {
   console.log('Sending offer to peer');
-  try {
-    let offer = peerConn.createOffer();
-    console.log('offer: ', offer);
-    console.log('offer.RTCSessionDescription: ', offer['[[PromiseValue]]']);
-    peerConn.setLocalDescription(offer['[[PromiseValue]]']);
-    sendMessage({
-      type: 'offer',
-      description: offer
-    });
-  } catch (e) {
-    console.error('Failed to create offer: ', e);
-  }
+  peerConn.createOffer(function(description) {
+    peerConn.setLocalDescription(description);
+    sendMessage(description);
+  }, function(e) {
+    console.log('createOffer error: ', e);
+  });
 }
 
 function doAnswer() {
   console.log('Sending answer to peer');
-  try {
-    let answer = peerConn.createAnswer();
-    console.log('answer: ', answer);
-    peerConn.setLocalDescription(answer);
-    sendMessage({
-      type: 'answer',
-      description: answer
-    });
-  } catch (e) {
-    console.error('Failed to create answer: ', e);
-  }
+  peerConn.createAnswer().then(
+    function(description) {
+      peerConn.setLocalDescription(description);
+      sendMessage(description);
+    },
+    function(e) {
+    console.log('createAnswer error: ', e);
+  });
 }
 
 function handleRemoteHangup() {
