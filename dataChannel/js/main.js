@@ -152,6 +152,7 @@ function doOffer() {
   console.log('Sending offer to peer');
   try {
     let offer = peerConn.createOffer();
+    console.log('offer: ', offer);
     peerConn.setLocalDescription(offer);
     sendMessage({
       type: 'offer',
@@ -166,6 +167,7 @@ function doAnswer() {
   console.log('Sending answer to peer');
   try {
     let answer = peerConn.createAnswer();
+    console.log('answer: ', answer);
     peerConn.setLocalDescription(answer);
     sendMessage({
       type: 'answer',
@@ -206,5 +208,6 @@ function send() {
     return;
   } 
 
+  console.log('RTCDataChannel', dataChannel.readyState);
   dataChannel.send(content);
 }
