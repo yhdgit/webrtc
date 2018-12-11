@@ -153,8 +153,8 @@ function doOffer() {
   try {
     let offer = peerConn.createOffer();
     console.log('offer: ', offer);
-    console.log('offer.RTCSessionDescription: ', offer.RTCSessionDescription);
-    peerConn.setLocalDescription(offer.RTCSessionDescription);
+    console.log('offer.RTCSessionDescription: ', offer['[[PromiseValue]]']);
+    peerConn.setLocalDescription(offer['[[PromiseValue]]']);
     sendMessage({
       type: 'offer',
       description: offer
