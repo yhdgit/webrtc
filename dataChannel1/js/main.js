@@ -1,5 +1,11 @@
 'use strict';
 // 兼容chrome和firefox浏览器
+/**
+ * firefox的RTCIceCandidate必须要有以下连个参数
+ * sdpMLineIndex
+ * sdpMid
+ * chrome则不需要
+ */
 
 ////////////////////////////////////////////////////
 // 客户端创建或加入房间
@@ -8,31 +14,31 @@ var isRoomCreators = false;
 var room = 'testRoom';
 var socket = io.connect();
 
-console.log('Attempted to create or join room: ', room);
+console.log('attempted to create or join room: ', room);
 socket.emit('create or join', room);
 
 socket.on('created', function(room) {
-  console.log('Created room: ' + room);
+  console.log('created room: ', room);
   isRoomCreators = true;
 });
 
 socket.on('other joining', function (room) {
-  console.log('Other peer made a request to join room: ' + room);
+  console.log('other peer made a request to join room: ', room);
 });
 
 socket.on('joined', function(room) {
-  console.log('Joined room: ' + room);
+  console.log('joined room: ', room);
 });
 
 socket.on('ready', function() {
-  console.log('Both sides are ready');
+  console.log('both sides are ready');
   if (isRoomCreators) {
     start();
   }
 });
 
 socket.on('full', function(room) {
-  console.log('Room: ' + room + ' is full');
+  console.log('room: ' + room + ' is full');
 });
 
 ////////////////////////////////////////////////////
@@ -41,26 +47,25 @@ socket.on('full', function(room) {
 var sender = document.querySelector('textarea#sender');
 var receiver = document.querySelector('textarea#receiver');
 var peerConn;
-var dataChannelSender;
-var dataChannelReceiver;
+var dataChannel;
 var pcConfig = {
   'iceServers': [{
-    'urls': 'turn:139.199.82.200:3478',
-    'username': 'yhd',
-    'credential': 'yhd1234'
-  }]
+    urls: 'turn:139.199.82.200:3478',
+    username: 'yhd',
+    credential: 'yhd1234',
+  },]
 };
 
 function sendMessage(message) {
-  console.log('Client sending message: ', message);
+  console.log('sending message: ', message);
   socket.emit('message', message);
 }
 
 socket.on('message', function(message) {
-  console.log('Client received message:', message);
-  if (message === 'Data Channel Created') {
+  console.log('received message: ', message);
+  if (message === 'dataChannel created') {
     start();
-  } else if (message === 'Data Channel Ready') {
+  } else if (message === 'dataChannel ready') {
     doOffer();
   } else if (message.type === 'offer') {
     peerConn.setRemoteDescription(new RTCSessionDescription(message));
@@ -71,18 +76,18 @@ socket.on('message', function(message) {
     var candidate = new RTCIceCandidate({
       sdpMLineIndex: message.sdpMLineIndex,
       sdpMid: message.sdpMid,
-      candidate: message.candidate
+      candidate: message.candidate,
     });
     peerConn.addIceCandidate(candidate);
   }
 });
 
 function start() {
-  console.log('Creating peer connection');
+  console.log('creating RTCPeerConnection');
   try {
     peerConn = new RTCPeerConnection(pcConfig);
     peerConn.onicecandidate = function(event) {
-      console.log('icecandidate event: ', event);
+      console.log('onicecandidate, event: ', event);
       if (event.candidate) {
         sendMessage({
           type: 'candidate',
@@ -91,55 +96,52 @@ function start() {
           candidate: event.candidate.candidate
         });
       } else {
-        console.log('End of candidates.');
+        console.log('end of candidate');
       }
     };
-    console.log('Created peer connection');
+    console.log('created RTCPeerConnection');
   } catch (e) {
-    console.log('Failed to create PeerConnection, exception: ' + e.message);
+    console.log('failed to create RTCPeerConnection, exception: ' + e.message);
     return;
   }
 
   if (isRoomCreators) {
-    console.log('Creating Data Channel');
-    dataChannelSender = peerConn.createDataChannel('testLabel', {
+    console.log('creating dataChannel');
+    dataChannel = peerConn.createDataChannel('testLabel', {
       ordered: true,
     });
-    initDataChannel(dataChannelSender);
-    sendMessage('Data Channel Created');
+    initDataChannel(dataChannel);
+    sendMessage('dataChannel created');
   } else {
     peerConn.ondatachannel = function(event) {
       console.log('ondatachannel:', event.channel);
-      dataChannelReceiver = event.channel;
-      dataChannelSender = dataChannelReceiver;
-      initDataChannel(dataChannelSender);
+      dataChannel = event.channel;
+      initDataChannel(dataChannel);
     };
-    sendMessage('Data Channel Ready');
+    sendMessage('dataChannel ready');
   }
 }
 
 function initDataChannel(dataChannel) {
   dataChannel.onopen = function() {
-    console.log('Data Channel opened.');
+    console.log('dataChannel opened.');
   };
 
   dataChannel.onclose = function() {
-    console.log('Data Channel closed.');
+    console.log('dataChannel closed.');
   }
 
   dataChannel.onmessage = function(event) {
-    var data = event.data;
-    console.log('receive : ' + data);
-    receiver.value = data;
+    receiver.value = event.data;
   };
 
   dataChannel.onerror = function (error) {
-    console.log("Data Channel Error:", error);
+    console.log("dataChannel error: ", error);
   };
 }
 
 function doOffer() {
-  console.log('Sending offer to peer');
+  console.log('sending offer');
   peerConn.createOffer(function(description) {
     peerConn.setLocalDescription(description);
     sendMessage(description);
@@ -149,7 +151,7 @@ function doOffer() {
 }
 
 function doAnswer() {
-  console.log('Sending answer to peer');
+  console.log('sending answer');
   peerConn.createAnswer(function(description) {
       peerConn.setLocalDescription(description);
       sendMessage(description);
@@ -163,18 +165,18 @@ function doAnswer() {
 
 var sendButton = document.querySelector('button#sendButton');
 sendButton.addEventListener('click', function() {
-  let content = sender.value;
+  var content = sender.value;
   console.log('send : [' + content + ']');
 
-  if (!dataChannelSender) {
-    console.log('Connection has not been initiated. Get two peers in the same room first');
-  } else if (dataChannelSender.readyState === 'closed') {
-    console.log('Connection was lost. Peer closed the connection.');
-  } else if (dataChannelSender.readyState === 'connecting') {
-    console.log('Connection is connecting.');
+  if (!dataChannel) {
+    console.log('dataChannel has not been initiated');
+  } else if (dataChannel.readyState === 'closed') {
+    console.log('dataChannel was closed');
+  } else if (dataChannel.readyState === 'connecting') {
+    console.log('dataChannel is connecting');
   } else {
-    console.log('RTCDataChannel', dataChannelSender.readyState);
-    dataChannelSender.send(content);
+    console.log('DataChannel.readyState', dataChannel.readyState);
+    dataChannel.send(content);
   }
 });
 
