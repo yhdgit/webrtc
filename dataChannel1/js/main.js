@@ -1,11 +1,6 @@
 'use strict';
-// 桌面版的chrome浏览器实验成功
-console.log("moz: ", window.mozRTCPeerConnection);
-console.log("webkit: ", window.webkitRTCPeerConnection);
-console.log(": ", window.RTCPeerConnection);
-window.RTCPeerConnection = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+// 兼容chrome和firefox浏览器
 
-console.log(": ", window.RTCPeerConnection);
 ////////////////////////////////////////////////////
 // 客户端创建或加入房间
 
@@ -73,6 +68,8 @@ socket.on('message', function(message) {
     peerConn.setRemoteDescription(new RTCSessionDescription(message));
   } else if (message.type === 'candidate') {
     var candidate = new RTCIceCandidate({
+      sdpMLineIndex: message.sdpMLineIndex,
+      sdpMid: message.sdpMid,
       candidate: message.candidate
     });
     peerConn.addIceCandidate(candidate);
@@ -127,6 +124,8 @@ function handleIceCandidate(event) {
   if (event.candidate) {
     sendMessage({
       type: 'candidate',
+      sdpMLineIndex: event.candidate.sdpMLineIndex,
+      sdpMid: event.candidate.sdpMid,
       candidate: event.candidate.candidate
     });
   } else {
@@ -166,12 +165,10 @@ function doOffer() {
 
 function doAnswer() {
   console.log('Sending answer to peer');
-  peerConn.createAnswer().then(
-    function(description) {
+  peerConn.createAnswer(function(description) {
       peerConn.setLocalDescription(description);
       sendMessage(description);
-    },
-    function(e) {
+    }, function(e) {
     console.log('createAnswer error: ', e);
   });
 }
