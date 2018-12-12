@@ -3,7 +3,9 @@
 console.log("moz: ", window.mozRTCPeerConnection);
 console.log("webkit: ", window.webkitRTCPeerConnection);
 console.log(": ", window.RTCPeerConnection);
-window.RTCPeerConnection = window.mozRTCPeerConnection || window.webkitRTCPeerConnection || window.RTCPeerConnection;
+window.RTCPeerConnection = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+
+console.log(": ", window.RTCPeerConnection);
 
 ////////////////////////////////////////////////////
 // 客户端创建或加入房间
