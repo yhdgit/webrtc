@@ -78,7 +78,7 @@ socket.on('message', function(message) {
 function start() {
   console.log('Creating peer connection');
   try {
-    peerConn = new RTCPeerConnection(pcConfig);
+    peerConn = new webkitRTCPeerConnection(pcConfig);
     peerConn.onicecandidate = handleIceCandidate;
     console.log('Created peer connection');
   } catch (e) {
@@ -193,13 +193,13 @@ function send() {
   console.log('send : [' + content + ']');
 
   if (!dataChannel) {
-    logError('Connection has not been initiated. Get two peers in the same room first');
-    return;
+    console.log('Connection has not been initiated. Get two peers in the same room first');
   } else if (dataChannel.readyState === 'closed') {
-    logError('Connection was lost. Peer closed the connection.');
-    return;
-  } 
-
-  console.log('RTCDataChannel', dataChannel.readyState);
-  dataChannel.send(content);
+    console.log('Connection was lost. Peer closed the connection.');
+  } else if (dataChannel.readyState === 'connecting') {
+    console.log('Connection is connecting.');
+  } else {
+    console.log('RTCDataChannel', dataChannel.readyState);
+    dataChannel.send(content);
+  }
 }
