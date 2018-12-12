@@ -111,7 +111,8 @@ function start() {
     peerConn.ondatachannel = function(event) {
       console.log('ondatachannel:', event.channel);
       dataChannelReceiver = event.channel;
-      initDataChannel(dataChannelReceiver);
+      dataChannelSender = dataChannelReceiver;
+      initDataChannel(dataChannelSender);
     };
     sendMessage('Data Channel Ready');
   }
