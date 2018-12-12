@@ -41,7 +41,8 @@ socket.on('full', function(room) {
 var sender = document.querySelector('textarea#sender');
 var receiver = document.querySelector('textarea#receiver');
 var peerConn;
-var dataChannel;
+var dataChannelSender;
+var dataChannelReceiver;
 var pcConfig = {
   'iceServers': [{
     'urls': 'turn:139.199.82.200:3478',
@@ -73,8 +74,6 @@ socket.on('message', function(message) {
       candidate: message.candidate
     });
     peerConn.addIceCandidate(candidate);
-  } else if (message === 'bye') {
-    handleRemoteHangup();
   }
 });
 
@@ -82,58 +81,43 @@ function start() {
   console.log('Creating peer connection');
   try {
     peerConn = new RTCPeerConnection(pcConfig);
-    peerConn.onicecandidate = handleIceCandidate;
+    peerConn.onicecandidate = function(event) {
+      console.log('icecandidate event: ', event);
+      if (event.candidate) {
+        sendMessage({
+          type: 'candidate',
+          sdpMLineIndex: event.candidate.sdpMLineIndex,
+          sdpMid: event.candidate.sdpMid,
+          candidate: event.candidate.candidate
+        });
+      } else {
+        console.log('End of candidates.');
+      }
+    };
     console.log('Created peer connection');
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
     return;
   }
+
   if (isRoomCreators) {
     console.log('Creating Data Channel');
-    dataChannel = peerConn.createDataChannel('testLabel', {
+    dataChannelSender = peerConn.createDataChannel('testLabel', {
       ordered: true,
     });
-    // onDataChannelCreated(dataChannel);
-    dataChannel.onopen = function() {
-      console.log('Data Channel opened.');
-    };
-    dataChannel.onclose = function() {
-      console.log('Data Channel closed.');
-    }
+    initDataChannel(dataChannelSender);
     sendMessage('Data Channel Created');
   } else {
     peerConn.ondatachannel = function(event) {
       console.log('ondatachannel:', event.channel);
-      dataChannel = event.channel;
-      // onDataChannelCreated(dataChannel);
-      dataChannel.onclose = function() {
-        console.log('Data Channel closed.');
-      }
-      dataChannel.onmessage = function(event) {
-        var data = event.data;
-        console.log('receive : ' + data);
-        receiver.value = data;
-      };
+      dataChannelReceiver = event.channel;
+      initDataChannel(dataChannelReceiver);
     };
     sendMessage('Data Channel Ready');
   }
 }
 
-function handleIceCandidate(event) {
-  console.log('icecandidate event: ', event);
-  if (event.candidate) {
-    sendMessage({
-      type: 'candidate',
-      sdpMLineIndex: event.candidate.sdpMLineIndex,
-      sdpMid: event.candidate.sdpMid,
-      candidate: event.candidate.candidate
-    });
-  } else {
-    console.log('End of candidates.');
-  }
-}
-
-function onDataChannelCreated(dataChannel) {
+function initDataChannel(dataChannel) {
   dataChannel.onopen = function() {
     console.log('Data Channel opened.');
   };
@@ -173,36 +157,27 @@ function doAnswer() {
   });
 }
 
-function handleRemoteHangup() {
-  console.log('Session terminated.');
-  isRoomCreators = false;
-  peerConn.close();
-  peerConn = null;
-}
-
-window.onbeforeunload = function() {
-  sendMessage('bye');
-};
-
 ////////////////////////////////////////////////////
 // 添加按钮事件
 
 var sendButton = document.querySelector('button#sendButton');
-
-sendButton.addEventListener('click', send);
-
-function send() {
+sendButton.addEventListener('click', function() {
   let content = sender.value;
   console.log('send : [' + content + ']');
 
-  if (!dataChannel) {
+  if (!dataChannelSender) {
     console.log('Connection has not been initiated. Get two peers in the same room first');
-  } else if (dataChannel.readyState === 'closed') {
+  } else if (dataChannelSender.readyState === 'closed') {
     console.log('Connection was lost. Peer closed the connection.');
-  } else if (dataChannel.readyState === 'connecting') {
+  } else if (dataChannelSender.readyState === 'connecting') {
     console.log('Connection is connecting.');
   } else {
-    console.log('RTCDataChannel', dataChannel.readyState);
-    dataChannel.send(content);
+    console.log('RTCDataChannel', dataChannelSender.readyState);
+    dataChannelSender.send(content);
   }
-}
+});
+
+// 关闭，刷新，后退都会触发，我们测试时关闭双方网页，这样不会出现问题
+window.onbeforeunload = function() {
+  sendMessage('bye');
+};

@@ -1,27 +1,21 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="css/main.css" />
+  </head>
 
-<head>
-  <meta charset="utf-8">
-  <link rel="stylesheet" href="css/main.css" />
+  <body>
+    <h1>WebRTC DataChannel Test</h1>
 
-</head>
+    <textarea id="sender"></textarea>
+    <textarea id="receiver" disabled></textarea>
+    <div>
+      <button id="sendButton">Send</button>
+    </div>
 
-<body>
-
-  <h1>WebRTC DataChannel Test</h1>
-
-  <textarea id="sender"></textarea>
-  <textarea id="receiver" disabled></textarea>
-
-  <div id="buttons">
-    <button id="sendButton">Send</button>
-  </div>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="js/adapter.js"></script>
-  <script src="js/main.js"></script>
-
-</body>
-
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/adapter.js"></script>
+    <script src="js/main.js"></script>
+  </body>
 </html>
