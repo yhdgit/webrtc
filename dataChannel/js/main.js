@@ -1,5 +1,7 @@
 'use strict';
 
+window.RTCPeerConnection = window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
+
 ////////////////////////////////////////////////////
 // 客户端创建或加入房间
 
@@ -78,7 +80,7 @@ socket.on('message', function(message) {
 function start() {
   console.log('Creating peer connection');
   try {
-    peerConn = new webkitRTCPeerConnection(pcConfig);
+    peerConn = new RTCPeerConnection(pcConfig);
     peerConn.onicecandidate = handleIceCandidate;
     console.log('Created peer connection');
   } catch (e) {
