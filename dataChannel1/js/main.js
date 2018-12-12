@@ -90,7 +90,7 @@ function start() {
   }
   if (isRoomCreators) {
     console.log('Creating Data Channel');
-    dataChannel = peerConn.createDataChannel('myLabel', {
+    dataChannel = peerConn.createDataChannel('testLabel', {
       ordered: true,
     });
     // onDataChannelCreated(dataChannel);
