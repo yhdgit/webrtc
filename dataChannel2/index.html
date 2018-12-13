@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>WebRTC DataChannel Test</title>
+
+    <link rel="stylesheet" href="css/main.css" />
+  </head>
+
+  <body>
+    <div>
+        <button id="joinButton">join room</button>
+        <span id="joinRoomStatus">not join the room</span>
+    </div>
+    <div>
+        <button id="connectButton" disabled>connect peer</button>
+        <span id="connectPeerStatus">not connect peer</span>
+    </div>
+    <div>
+        <button id="closeButton" disabled>close connection</button>
+    </div>
+    <div>
+        <button id="leaveButton" disabled>leave room</button>
+    </div>
+    <div>
+        <textarea id="sender"></textarea>
+        <textarea id="receiver" disabled></textarea>
+    </div>
+    <div>
+      <button id="sendButton" disabled>Send</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/adapter.js"></script>
+    <script src="js/main.js"></script>
+  </body>
+</html>

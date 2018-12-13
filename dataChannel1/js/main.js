@@ -1,7 +1,7 @@
 'use strict';
-// 兼容chrome和firefox浏览器
+// 支持 平台：macOS、windows；浏览器：chrome、firefox。
 /**
- * firefox的RTCIceCandidate必须要有以下连个参数
+ * firefox的RTCIceCandidate必须要有以下两个参数
  * sdpMLineIndex
  * sdpMid
  * chrome则不需要
@@ -180,7 +180,7 @@ sendButton.addEventListener('click', function() {
   }
 });
 
-// 关闭，刷新，后退都会触发，我们测试时关闭双方网页，这样不会出现问题
+// 关闭，刷新，后退都会触发
 window.onbeforeunload = function() {
   sendMessage('bye');
 };
