@@ -1,5 +1,5 @@
 'use strict';
-// 支持 平台：macOS、windows；浏览器：chrome、firefox。
+// 支持 平台：macOS、windows、Android；浏览器：chrome、firefox。
 /**
  * firefox的RTCIceCandidate必须要有以下两个参数
  * sdpMLineIndex
